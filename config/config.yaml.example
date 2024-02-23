@@ -1,0 +1,16 @@
+---
+app:
+  name: Bleki App
+  version: 0.0.1
+aws:
+  - account_id: < AWS Account ID>
+    eks:
+      - cluster_name: < EKS Cluster Name >
+        region: "us-east-1"
+  - account_id: < AWS Account ID >
+    role_arn: < Role ARN >
+    eks:
+      - cluster_name: < EKS Cluster Name >
+        region: "us-west-1"
+      - cluster_name: < EKS Cluster Name >
+        region: "us-east-2"
