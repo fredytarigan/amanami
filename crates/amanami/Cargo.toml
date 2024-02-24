@@ -18,5 +18,6 @@ path = "src/bin/main.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anstyle = "1"
 anyhow = "1"
 clap = { version = "4.5", features = ["std", "derive", "help", "usage"] }

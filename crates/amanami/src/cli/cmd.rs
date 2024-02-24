@@ -7,6 +7,7 @@ pub fn run() -> anyhow::Result<ExitCode> {
     let cmd = <Args as clap::Parser>::parse();
 
     // load config
+    
 
     match cmd.subcommand {
         SubCommands::Eks {} => {
