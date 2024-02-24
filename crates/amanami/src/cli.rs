@@ -1,7 +1,7 @@
 // mod args;
-mod cli;
+mod args;
 mod cmd;
 
 // pub use args::Cli;
-pub use cli::run;
-pub use cmd::CmdLine;
+pub use args::Args;
+pub use cmd::run;
