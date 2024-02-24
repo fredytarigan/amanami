@@ -23,11 +23,13 @@ impl Config {
 
     pub fn generate_config(&self) -> SdkConfig {
         match &self.role_arn {
-            Some(role) => {}
-            None => {}
-        }
+            Some(_) => {
+                let config = self.default();
 
-        unimplemented!()
+                self.assume_role(config)
+            }
+            None => self.default(),
+        }
     }
 
     #[::tokio::main]
@@ -39,7 +41,21 @@ impl Config {
     }
 
     #[::tokio::main]
-    async fn assume_role(&self) -> SdkConfig {
-        unimplemented!()
+    async fn assume_role(&self, config: SdkConfig) -> SdkConfig {
+        // hardcoded session name
+        let session_name = "amanami-debug";
+
+        let provider = aws_config::sts::AssumeRoleProvider::builder(self.role_arn.clone().unwrap())
+            .configure(&config)
+            .region(Region::new(self.region.clone()))
+            .session_name(session_name)
+            .build()
+            .await;
+
+        aws_config::from_env()
+            .credentials_provider(provider)
+            .region(Region::new(self.region.clone()))
+            .load()
+            .await
     }
 }
