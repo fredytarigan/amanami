@@ -4,7 +4,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct AppConfig {
     pub app: App,
-    pub aws: Vec<Aws>,
+    pub aws: Vec<AwsConfig>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -14,14 +14,14 @@ pub struct App {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Aws {
+pub struct AwsConfig {
     pub account_id: String,
     pub role_arn: Option<String>,
-    pub eks: Option<Vec<Eks>>,
+    pub eks: Option<Vec<EksConfig>>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Eks {
+pub struct EksConfig {
     pub cluster_name: String,
     pub region: String,
 }

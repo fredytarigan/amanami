@@ -1,6 +1,7 @@
 use std::process::ExitCode;
 
 use super::args::{Args, SubCommands};
+use crate::aws::Aws;
 use crate::config::loader;
 
 pub fn run() -> anyhow::Result<ExitCode> {
@@ -21,11 +22,11 @@ pub fn run() -> anyhow::Result<ExitCode> {
         }
     };
 
-    println!("{:?}", config);
-
     match cmd.subcommand {
         SubCommands::Eks {} => {
-            println!("EKS Subcommand");
+            let aws = Aws::new(config.aws);
+
+            aws.get_eks_updates()?;
         }
     }
 
