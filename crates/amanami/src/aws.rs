@@ -110,7 +110,7 @@ impl Aws {
 
                 let client = eks.client();
 
-                let result = eks.get_cluster_update(client);
+                let result = eks.get_cluster_update(&client);
 
                 let _ = tx.send((
                     cluster.account_id,
@@ -184,6 +184,7 @@ impl Aws {
             rows,
         );
 
+        println!("");
         println!("{}", "EKS Cluster Details: ".bold().yellow());
         table.display_output();
 
