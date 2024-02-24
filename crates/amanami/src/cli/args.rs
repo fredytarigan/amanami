@@ -12,7 +12,7 @@ pub struct Args {
     /// Application will look for "config/config.yaml" if this option isn't specified
     #[clap(verbatim_doc_comment)]
     #[arg(short = 'f', long, value_name = "CONFIG_FILE")]
-    pub config_file: Option<PathBuf>,
+    pub config_file: Option<String>,
 
     #[command(subcommand)]
     pub subcommand: SubCommands,
