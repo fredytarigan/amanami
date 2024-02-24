@@ -3,23 +3,23 @@ use aws_types::region::Region;
 
 #[derive(Debug)]
 pub struct Config {
-    region: String,
-    role_arn: Option<String>,
+    pub region: String,
+    pub role_arn: Option<String>,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            region: String::from("ap-southeast-1"),
+            region: String::from("us-east-1"),
             role_arn: None,
         }
     }
 }
 
 impl Config {
-    pub fn new(region: String, role_arn: Option<String>) -> Self {
-        Self { region, role_arn }
-    }
+    // pub fn new(region: String, role_arn: Option<String>) -> Self {
+    //     Self { region, role_arn }
+    // }
 
     pub fn generate_config(&self) -> SdkConfig {
         match &self.role_arn {
