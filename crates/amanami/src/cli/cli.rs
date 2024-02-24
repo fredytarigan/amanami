@@ -1,11 +1,19 @@
 use std::process::ExitCode;
 
-use super::cmd::CmdLine;
+use super::cmd::{CmdLine, SubCommands};
 
 pub fn run() -> anyhow::Result<ExitCode> {
+    // parse cmd args
     let cmd = <CmdLine as clap::Parser>::parse();
 
-    println!("Hello World !!!");
+    // load config
+    
+
+    match cmd.subcommand {
+        SubCommands::EKS {} => {
+            println!("EKS Subcommand");
+        }
+    }
 
     Ok(ExitCode::SUCCESS)
 }
