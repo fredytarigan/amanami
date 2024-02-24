@@ -1,18 +1,22 @@
-use crate::config::AwsConfig;
+mod config;
 
-#[derive(Debug)]
+use crate::config::AwsConfig;
+use config::Config;
+use std::thread;
+
+#[derive(Debug, Clone)]
 pub struct Aws {
     aws_account: Vec<AwsAccount>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AwsAccount {
     account_id: String,
     role_arn: Option<String>,
     eks: Option<Vec<EksConfig>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EksConfig {
     cluster_name: String,
     region: String,
@@ -57,7 +61,26 @@ impl Aws {
     }
 
     pub fn get_eks_updates(&self) -> Result<(), std::io::Error> {
-        
+        // prepare thread
+        let mut v = Vec::<std::thread::JoinHandle<()>>::new();
+
+        // loop over all aws account
+        for account in self.aws_account.clone() {
+            let thread = thread::spawn(move || {
+                let config = Config::new(String::from("ap-southeast-1"), account.role_arn);
+                let resp = config.generate_config();
+
+                println!("{:?}", resp);
+                println!("");
+                println!("");
+            });
+            v.push(thread);
+        }
+
+        for item in v.into_iter() {
+            item.join().unwrap();
+        }
+
         unimplemented!();
     }
 }

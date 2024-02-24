@@ -25,3 +25,6 @@ colored = "2"
 config = "0.14"
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-types = { version = "1" }
+tokio = { version = "1", features = ["full"] }
