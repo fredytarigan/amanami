@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "crates/*", "lib/aws",
+    "crates/*",
 ]
 resolver = "2"
 

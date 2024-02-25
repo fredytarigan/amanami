@@ -4,7 +4,6 @@ use super::ssm::Ssm;
 use aws_config::SdkConfig;
 use aws_sdk_eks::Client;
 use aws_types::region::Region;
-use std::collections::HashMap;
 use std::sync::mpsc::channel;
 use std::thread;
 
@@ -79,69 +78,67 @@ impl<'sdk> Eks<'sdk> {
         }
     }
 
-    pub fn get_nodegroup_update(&self, client: &Client, name: String) -> NodegroupResponse {
-        unimplemented!()
+    pub fn get_nodegroup_update(&self, client: &Client) -> Vec<NodegroupResponse> {
+        let nodegroups = match self.list_nodegroups(client) {
+            Some(group) => group,
+            None => vec![],
+        };
+
+        let (tx, rx) = channel::<NodegroupResponse>();
+
+        let cluster_version = self.get_cluster_version(&client);
+
+        thread::scope(|s| {
+            for node in nodegroups {
+                s.spawn(|| {
+                    let asg_name = self.get_nodegroup_asg(&client, node.clone());
+
+                    let asg = Autoscaling::new(self.config, self.region.clone());
+                    let asg_client = asg.client();
+                    let launch_template = asg.get_asg_launch_template(asg_client, asg_name);
+
+                    let ssm = Ssm::new(self.config, self.region.clone());
+                    let ssm_client = ssm.client();
+                    let latest_ami_id =
+                        ssm.get_latest_eks_ami_id(&ssm_client, cluster_version.clone());
+
+                    let ec2 = Ec2::new(
+                        self.config,
+                        self.region.clone(),
+                        launch_template.id.clone(),
+                        launch_template.version.clone(),
+                    );
+                    let ec2_client = ec2.client();
+                    let ami_id = ec2.get_launch_template_ami_id(&ec2_client);
+                    let ami_name = ec2.get_ami_name(&ec2_client, ami_id);
+                    let latest_ami_name = ec2.get_ami_name(&ec2_client, latest_ami_id);
+
+                    let mut upgrade_available: String = String::from("Not Available");
+
+                    if ami_name != latest_ami_name {
+                        upgrade_available = String::from("Available");
+                    }
+
+                    let _ = tx.send(NodegroupResponse {
+                        node_name: node,
+                        ami_name,
+                        latest_ami_name,
+                        upgrade_available,
+                    });
+                });
+            }
+        });
+
+        drop(tx);
+
+        let mut result = vec![];
+
+        while let Ok(data) = rx.recv() {
+            result.push(data)
+        }
+
+        result
     }
-
-    // pub fn get_nodegroup_update(&self, client: &Client) -> NodegroupResponse {
-    //     let nodegroups = match self.list_nodegroups(&client) {
-    //         Some(data) => data,
-    //         None => vec![],
-    //     };
-
-    //     let (tx, rx) = channel();
-
-    //     thread::scope(|s| {
-    //         for node in nodegroups {
-    //             s.spawn(|| {
-    //                 let asg_name = self.get_nodegroup_asg(&client, node.clone());
-
-    //                 let asg = Autoscaling::new(self.config, self.region.clone());
-    //                 let asg_client = asg.client();
-    //                 let launch_template = asg.get_asg_launch_template(asg_client, asg_name);
-
-    //                 let ssm = Ssm::new(self.config, self.region.clone());
-    //                 let ssm_client = ssm.client();
-    //                 let latest_ami_id =
-    //                     ssm.get_latest_eks_ami_id(&ssm_client, cluster_version.clone());
-
-    //                 let ec2 = Ec2::new(
-    //                     self.config,
-    //                     self.region.clone(),
-    //                     launch_template.id.clone(),
-    //                     launch_template.version.clone(),
-    //                 );
-    //                 let ec2_client = ec2.client();
-    //                 let ami_id = ec2.get_launch_template_ami_id(&ec2_client);
-    //                 let ami_name = ec2.get_ami_name(&ec2_client, ami_id);
-    //                 let latest_ami_name = ec2.get_ami_name(&ec2_client, latest_ami_id);
-
-    //                 let mut upgrade_available = String::from("Not Available");
-
-    //                 if ami_name != latest_ami_name {
-    //                     upgrade_available = String::from("Available");
-    //                 }
-
-    //                 let nodegroup_response = NodegroupResponse {
-    //                     node_name: node.clone(),
-    //                     ami_name,
-    //                     latest_ami_name,
-    //                     upgrade_available,
-    //                 };
-
-    //                 let _ = tx.send((node, launch_template));
-    //             });
-    //         }
-    //     });
-
-    //     drop(tx);
-
-    //     while let Ok((node, asg_name)) = rx.recv() {
-    //         result.insert(node, asg_name);
-    //     }
-
-    //     unimplemented!()
-    // }
 
     #[::tokio::main]
     async fn get_cluster_version(&self, client: &Client) -> String {

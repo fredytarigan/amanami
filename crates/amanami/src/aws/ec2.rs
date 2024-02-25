@@ -10,7 +10,7 @@ pub struct Ec2<'sdk> {
 }
 
 #[derive(Debug)]
-struct LaunchTemplate {
+pub struct LaunchTemplate {
     id: String,
     version: String,
 }

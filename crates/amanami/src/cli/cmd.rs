@@ -27,6 +27,7 @@ pub fn run() -> anyhow::Result<ExitCode> {
             let aws = Aws::new(config.aws);
 
             aws.get_eks_clusters_update()?;
+            aws.get_eks_nodegroups_update()?;
         }
     }
 
