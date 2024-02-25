@@ -26,7 +26,7 @@ pub fn run() -> anyhow::Result<ExitCode> {
         SubCommands::Eks {} => {
             let aws = Aws::new(config.aws);
 
-            aws.get_eks_updates()?;
+            aws.get_eks_clusters_update()?;
         }
     }
 

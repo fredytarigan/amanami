@@ -68,7 +68,7 @@ impl Aws {
         Self { aws_account: aws }
     }
 
-    pub fn get_eks_updates(&self) -> Result<(), std::io::Error> {
+    pub fn get_eks_clusters_update(&self) -> Result<(), std::io::Error> {
         // construct a vec of eks cluster
         let mut eks_clusters: Vec<EksCluster> = Vec::new();
         // let mut result = HashMap::new();
@@ -191,5 +191,10 @@ impl Aws {
         println!("");
 
         Ok(())
+    }
+
+    pub fn get_eks_nodegroups_update(&self) -> Result<(), std::io::Error> {
+        
+        unimplemented!()
     }
 }

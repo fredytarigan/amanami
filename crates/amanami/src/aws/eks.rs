@@ -79,6 +79,10 @@ impl<'sdk> Eks<'sdk> {
         }
     }
 
+    pub fn get_nodegroup_update(&self, client: &Client, name: String) -> NodegroupResponse {
+        unimplemented!()
+    }
+
     // pub fn get_nodegroup_update(&self, client: &Client) -> NodegroupResponse {
     //     let nodegroups = match self.list_nodegroups(&client) {
     //         Some(data) => data,
