@@ -46,9 +46,8 @@ impl<'sdk> Ec2<'sdk> {
 
         let ami_id: Vec<_> = resp
             .launch_template_versions()
-            .into_iter()
-            .map(|x| &x.launch_template_data)
-            .flat_map(|x| x)
+            .iter()
+            .flat_map(|x| &x.launch_template_data)
             .map(|x| &x.image_id)
             .map(|x| match &x {
                 Some(image) => image,
@@ -68,12 +67,7 @@ impl<'sdk> Ec2<'sdk> {
             .await
             .unwrap();
 
-        let ami_name: Vec<_> = resp
-            .images()
-            .into_iter()
-            .map(|x| &x.name)
-            .flat_map(|x| x)
-            .collect();
+        let ami_name: Vec<_> = resp.images().iter().flat_map(|x| &x.name).collect();
 
         String::from(ami_name[0])
     }

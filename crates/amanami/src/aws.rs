@@ -95,7 +95,6 @@ impl Aws {
                 let config = Config {
                     role_arn: cluster.role_arn,
                     region: cluster.region.clone(),
-                    ..Default::default()
                 };
 
                 let config = config.generate_config();
@@ -126,19 +125,18 @@ impl Aws {
         let mut rows = vec![];
 
         while let Ok((account_id, region, cluster_name, result)) = rx.recv() {
-            let upgrade_available: Cell;
-            if result.upgrade_available == "Not Available" {
-                upgrade_available = Cell::new(&result.upgrade_available)
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::Black);
-            } else {
-                upgrade_available = Cell::new(&result.upgrade_available)
+            let upgrade_available: Cell = if result.upgrade_available == "Not Available" {
+                Cell::new(&result.upgrade_available)
                     .set_alignment(CellAlignment::Center)
                     .add_attribute(Attribute::Bold)
                     .fg(Color::Black)
-                    .fg(Color::Green);
-            }
+            } else {
+                Cell::new(&result.upgrade_available)
+                    .set_alignment(CellAlignment::Center)
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Black)
+                    .fg(Color::Green)
+            };
 
             let cluster_data = vec![
                 Cell::new(account_id),
@@ -183,11 +181,9 @@ impl Aws {
             rows,
         );
 
-        println!("");
         println!("{}", "EKS Cluster Details: ".bold().yellow());
         table.display_output();
-
-        println!("");
+        println!();
 
         Ok(())
     }
@@ -219,7 +215,6 @@ impl Aws {
                 let config = Config {
                     role_arn: cluster.role_arn,
                     region: cluster.region.clone(),
-                    ..Default::default()
                 };
 
                 let config = config.generate_config();
@@ -251,19 +246,18 @@ impl Aws {
 
         while let Ok((account_id, region, cluster_name, data)) = rx.recv() {
             for result in data {
-                let upgrade_available: Cell;
-                if result.upgrade_available == "Not Available" {
-                    upgrade_available = Cell::new(&result.upgrade_available)
-                        .set_alignment(CellAlignment::Center)
-                        .add_attribute(Attribute::Bold)
-                        .fg(Color::Black);
-                } else {
-                    upgrade_available = Cell::new(&result.upgrade_available)
+                let upgrade_available: Cell = if result.upgrade_available == "Not Available" {
+                    Cell::new(&result.upgrade_available)
                         .set_alignment(CellAlignment::Center)
                         .add_attribute(Attribute::Bold)
                         .fg(Color::Black)
-                        .fg(Color::Green);
-                }
+                } else {
+                    Cell::new(&result.upgrade_available)
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::Black)
+                        .fg(Color::Green)
+                };
 
                 let nodegrop_data = vec![
                     Cell::new(account_id.clone()),
@@ -310,11 +304,9 @@ impl Aws {
             rows,
         );
 
-        println!("");
         println!("{}", "Nodegroup Details: ".bold().yellow());
         table.display_output();
-
-        println!("");
+        println!();
 
         Ok(())
     }

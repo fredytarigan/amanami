@@ -62,8 +62,8 @@ impl<'sdk> Eks<'sdk> {
 
     pub fn get_cluster_update(&self, client: &Client) -> ClusterResponse {
         // get cluster update availability
-        let cluster_version = self.get_cluster_version(&client);
-        let latest_cluster_version = self.get_latest_cluster_version(&client);
+        let cluster_version = self.get_cluster_version(client);
+        let latest_cluster_version = self.get_latest_cluster_version(client);
 
         let mut upgrade_available: String = String::from("Not Available");
 
@@ -86,12 +86,12 @@ impl<'sdk> Eks<'sdk> {
 
         let (tx, rx) = channel::<NodegroupResponse>();
 
-        let cluster_version = self.get_cluster_version(&client);
+        let cluster_version = self.get_cluster_version(client);
 
         thread::scope(|s| {
             for node in nodegroups {
                 s.spawn(|| {
-                    let asg_name = self.get_nodegroup_asg(&client, node.clone());
+                    let asg_name = self.get_nodegroup_asg(client, node.clone());
 
                     let asg = Autoscaling::new(self.config, self.region.clone());
                     let asg_client = asg.client();
@@ -152,8 +152,7 @@ impl<'sdk> Eks<'sdk> {
         let cluster_version: Vec<_> = resp
             .cluster()
             .into_iter()
-            .map(|x| &x.version)
-            .flat_map(|x| x)
+            .flat_map(|x| &x.version)
             .collect();
 
         String::from(cluster_version[0])
@@ -175,16 +174,14 @@ impl<'sdk> Eks<'sdk> {
 
         let _ = resp
             .addons()
-            .into_iter()
-            .map(|x| &x.addon_versions)
-            .flat_map(|x| x)
+            .iter()
+            .flat_map(|x| &x.addon_versions)
             .map(|x| {
                 for item in x {
                     let cluster_version = match &item.compatibilities {
                         Some(x) => x
-                            .into_iter()
-                            .map(|x| x.cluster_version())
-                            .flat_map(|x| x)
+                            .iter()
+                            .filter_map(|x| x.cluster_version())
                             .collect::<Vec<&str>>(),
                         None => continue,
                     };
@@ -213,11 +210,7 @@ impl<'sdk> Eks<'sdk> {
             .await
             .unwrap();
 
-        if let Some(nodegroups) = resp.nodegroups {
-            Some(nodegroups)
-        } else {
-            None
-        }
+        resp.nodegroups
     }
 
     #[::tokio::main]
@@ -233,11 +226,9 @@ impl<'sdk> Eks<'sdk> {
         let autoscaling_group: Vec<_> = resp
             .nodegroup()
             .into_iter()
-            .map(|x| &x.resources)
-            .flat_map(|x| x)
-            .map(|x| &x.auto_scaling_groups)
-            .flat_map(|x| x)
-            .flat_map(|x| x)
+            .flat_map(|x| &x.resources)
+            .flat_map(|x| &x.auto_scaling_groups)
+            .flatten()
             .map(|x| &x.name)
             .map(|x| match x {
                 Some(d) => d,

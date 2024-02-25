@@ -38,13 +38,10 @@ impl<'sdk> Autoscaling<'sdk> {
 
         let launch_template = resp
             .auto_scaling_groups()
-            .into_iter()
-            .map(|x| &x.mixed_instances_policy)
-            .flat_map(|x| x)
-            .map(|x| &x.launch_template)
-            .flat_map(|x| x)
-            .map(|x| &x.launch_template_specification)
-            .flat_map(|x| x)
+            .iter()
+            .flat_map(|x| &x.mixed_instances_policy)
+            .flat_map(|x| &x.launch_template)
+            .flat_map(|x| &x.launch_template_specification)
             .map(|x| {
                 let launch_template_id = match &x.launch_template_id {
                     Some(d) => d,
