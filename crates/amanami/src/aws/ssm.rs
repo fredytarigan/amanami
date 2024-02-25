@@ -36,8 +36,7 @@ impl<'sdk> Ssm<'sdk> {
         let ami_id: Vec<_> = resp
             .parameter()
             .into_iter()
-            .map(|x| &x.value)
-            .flat_map(|x| x)
+            .flat_map(|x| &x.value)
             .collect();
 
         String::from(ami_id[0])
