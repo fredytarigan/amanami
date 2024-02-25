@@ -1,0 +1,36 @@
+[package]
+name = "amanami"
+description = "A simple CLI application to check available updates for a certain things"
+version = "0.1.0"
+homepage = ""
+documentation = ""
+autobins = false
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "amanami"
+path = "src/bin/main.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anstyle = "1"
+anyhow = "1"
+clap = { version = "4.5", features = ["std", "derive", "help", "usage"] }
+colored = "2"
+config = "0.14"
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-types = { version = "1" }
+tokio = { version = "1", features = ["full"] }
+aws-sdk-eks = "1.14"
+aws-sdk-autoscaling = "1.15"
+aws-sdk-ssm = "1.16"
+aws-sdk-ec2 = "1.20"
+comfy-table = "7"
+crossbeam = "0.8"

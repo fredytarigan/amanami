@@ -1,10 +1,4 @@
 {
-  "rust-analyzer.linkedProjects": [
-    "./Cargo.toml",
-    "./Cargo.toml",
-    "./src/bleki/config/Cargo.toml",
-    "./src/bleki/aws/config/Cargo.toml",
-    "./src/bleki/aws/eks/Cargo.toml"
-  ],
+  "rust-analyzer.linkedProjects": ["./Cargo.toml"],
   "rust-analyzer.showUnlinkedFileNotification": false
 }

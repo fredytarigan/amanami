@@ -1,19 +1,22 @@
-workspace = { members = ["src/bleki/aws/ssm"] }
-[package]
-name = "bleki"
-version = "0.1.0"
+[workspace]
+members = [
+    "crates/*",
+]
+resolver = "2"
+
+[workspace.package]
+rust-version = "1.76"
 edition = "2021"
+license = "GPL v3.0"
+authors = [
+    "Amanami team",
+]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.dev]
+debug = 0
 
-[dependencies]
+[profile.release]
+debug = 0
+
+[workspace.dependencies]
 colored = "2"
-comfy-table = "7"
-
-app-config = { package = "bleki-config", path = "src/bleki/config" }
-app-aws-config = { package = "bleki-aws-config", path = "src/bleki/aws/config" }
-app-aws-eks = { package = "bleki-aws-eks", path = "src/bleki/aws/eks" }
-app-aws-autoscaling = { package = "bleki-aws-autoscaling", path = "src/bleki/aws/autoscaling" }
-app-aws-ec2 = { package = "bleki-aws-ec2", path = "src/bleki/aws/ec2" }
-app-aws-ssm = { package = "bleki-aws-ssm", path = "src/bleki/aws/ssm" }
-app-output-table = { package = "bleki-output-table", path = "src/bleki/output/table" }
