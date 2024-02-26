@@ -4,8 +4,6 @@ use super::ssm::Ssm;
 use aws_config::SdkConfig;
 use aws_sdk_eks::Client;
 use aws_types::region::Region;
-use std::sync::mpsc::channel;
-use std::thread;
 
 #[derive(Debug)]
 pub struct Eks<'sdk> {
@@ -20,6 +18,15 @@ pub struct EksCluster {
     pub cluster_name: String,
     pub region: String,
     pub role_arn: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct EksNodeGroup {
+    pub account_id: String,
+    pub cluster_name: String,
+    pub region: String,
+    pub role_arn: Option<String>,
+    pub node_name: String,
 }
 
 #[derive(Debug)]
@@ -78,66 +85,41 @@ impl<'sdk> Eks<'sdk> {
         }
     }
 
-    pub fn get_nodegroup_update(&self, client: &Client) -> Vec<NodegroupResponse> {
-        let nodegroups = match self.list_nodegroups(client) {
-            Some(group) => group,
-            None => vec![],
-        };
-
-        let (tx, rx) = channel::<NodegroupResponse>();
-
+    pub fn get_nodegroup_update(&self, client: &Client, name: String) -> NodegroupResponse {
         let cluster_version = self.get_cluster_version(client);
+        let asg_name = self.get_nodegroup_asg(client, name.clone());
 
-        thread::scope(|s| {
-            for node in nodegroups {
-                s.spawn(|| {
-                    let asg_name = self.get_nodegroup_asg(client, node.clone());
+        let asg = Autoscaling::new(self.config, self.region.clone());
+        let asg_client = asg.client();
+        let launch_template = asg.get_asg_launch_template(asg_client, asg_name);
 
-                    let asg = Autoscaling::new(self.config, self.region.clone());
-                    let asg_client = asg.client();
-                    let launch_template = asg.get_asg_launch_template(asg_client, asg_name);
+        let ssm = Ssm::new(self.config, self.region.clone());
+        let ssm_client = ssm.client();
+        let latest_ami_id = ssm.get_latest_eks_ami_id(&ssm_client, cluster_version.clone());
 
-                    let ssm = Ssm::new(self.config, self.region.clone());
-                    let ssm_client = ssm.client();
-                    let latest_ami_id =
-                        ssm.get_latest_eks_ami_id(&ssm_client, cluster_version.clone());
+        let ec2 = Ec2::new(
+            self.config,
+            self.region.clone(),
+            launch_template.id.clone(),
+            launch_template.version.clone(),
+        );
+        let ec2_client = ec2.client();
+        let ami_id = ec2.get_launch_template_ami_id(&ec2_client);
+        let ami_name = ec2.get_ami_name(&ec2_client, ami_id);
+        let latest_ami_name = ec2.get_ami_name(&ec2_client, latest_ami_id);
 
-                    let ec2 = Ec2::new(
-                        self.config,
-                        self.region.clone(),
-                        launch_template.id.clone(),
-                        launch_template.version.clone(),
-                    );
-                    let ec2_client = ec2.client();
-                    let ami_id = ec2.get_launch_template_ami_id(&ec2_client);
-                    let ami_name = ec2.get_ami_name(&ec2_client, ami_id);
-                    let latest_ami_name = ec2.get_ami_name(&ec2_client, latest_ami_id);
+        let mut upgrade_available: String = String::from("Not Available");
 
-                    let mut upgrade_available: String = String::from("Not Available");
-
-                    if ami_name != latest_ami_name {
-                        upgrade_available = String::from("Available");
-                    }
-
-                    let _ = tx.send(NodegroupResponse {
-                        node_name: node,
-                        ami_name,
-                        latest_ami_name,
-                        upgrade_available,
-                    });
-                });
-            }
-        });
-
-        drop(tx);
-
-        let mut result = vec![];
-
-        while let Ok(data) = rx.recv() {
-            result.push(data)
+        if ami_name != latest_ami_name {
+            upgrade_available = String::from("Available");
         }
 
-        result
+        NodegroupResponse {
+            node_name: name,
+            ami_name,
+            latest_ami_name,
+            upgrade_available,
+        }
     }
 
     #[::tokio::main]
@@ -202,7 +184,7 @@ impl<'sdk> Eks<'sdk> {
     }
 
     #[::tokio::main]
-    async fn list_nodegroups(&self, client: &Client) -> Option<Vec<String>> {
+    pub async fn list_nodegroups(&self, client: &Client) -> Option<Vec<String>> {
         let resp = client
             .list_nodegroups()
             .cluster_name(self.cluster_name.clone())

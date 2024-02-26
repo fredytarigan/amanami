@@ -7,7 +7,7 @@ mod ssm;
 use crate::config::AwsConfig;
 use crate::output::OutputTable;
 use config::Config;
-use eks::{Eks, EksCluster};
+use eks::{Eks, EksCluster, EksNodeGroup};
 use std::sync::mpsc::channel;
 use std::thread;
 
@@ -190,20 +190,37 @@ impl Aws {
 
     pub fn get_eks_nodegroups_update(&self) -> Result<(), std::io::Error> {
         // consutruct a vec of eks cluster
-        let mut eks_clusters: Vec<EksCluster> = Vec::new();
+        let mut eks_clusters: Vec<EksNodeGroup> = Vec::new();
         let (tx, rx) = channel();
 
         for account in self.aws_account.clone() {
             if let Some(eks) = account.eks {
                 for item in eks {
-                    let cluster = EksCluster {
-                        account_id: account.account_id.clone(),
-                        cluster_name: item.cluster_name,
-                        region: item.region,
+                    let config = Config {
                         role_arn: account.role_arn.clone(),
+                        region: item.region.clone(),
                     };
 
-                    eks_clusters.push(cluster);
+                    let config = config.generate_config();
+
+                    // generate eks client
+                    let eks = Eks::new(&config, item.cluster_name.clone(), item.region.clone());
+
+                    let client = eks.client();
+
+                    let nodegroup = eks.list_nodegroups(&client);
+
+                    let result: Vec<_> = nodegroup.iter().flatten().collect();
+
+                    for node in result {
+                        eks_clusters.push(EksNodeGroup {
+                            account_id: account.account_id.clone(),
+                            cluster_name: item.cluster_name.clone(),
+                            region: item.region.clone(),
+                            role_arn: account.role_arn.clone(),
+                            node_name: String::from(node),
+                        })
+                    }
                 }
             }
         }
@@ -228,7 +245,7 @@ impl Aws {
 
                 let client = eks.client();
 
-                let result = eks.get_nodegroup_update(&client);
+                let result = eks.get_nodegroup_update(&client, cluster.node_name);
 
                 let _ = tx.send((
                     cluster.account_id,
@@ -245,32 +262,30 @@ impl Aws {
         let mut rows = vec![];
 
         while let Ok((account_id, region, cluster_name, data)) = rx.recv() {
-            for result in data {
-                let upgrade_available: Cell = if result.upgrade_available == "Not Available" {
-                    Cell::new(&result.upgrade_available)
-                        .set_alignment(CellAlignment::Center)
-                        .add_attribute(Attribute::Bold)
-                        .fg(Color::Black)
-                } else {
-                    Cell::new(&result.upgrade_available)
-                        .set_alignment(CellAlignment::Center)
-                        .add_attribute(Attribute::Bold)
-                        .fg(Color::Black)
-                        .fg(Color::Green)
-                };
+            let upgrade_available: Cell = if data.upgrade_available == "Not Available" {
+                Cell::new(&data.upgrade_available)
+                    .set_alignment(CellAlignment::Center)
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Black)
+            } else {
+                Cell::new(&data.upgrade_available)
+                    .set_alignment(CellAlignment::Center)
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Black)
+                    .fg(Color::Green)
+            };
 
-                let nodegrop_data = vec![
-                    Cell::new(account_id.clone()),
-                    Cell::new(cluster_name.clone()),
-                    Cell::new(region.clone()).set_alignment(CellAlignment::Center),
-                    Cell::new(result.node_name),
-                    Cell::new(result.ami_name).set_alignment(CellAlignment::Center),
-                    Cell::new(result.latest_ami_name).set_alignment(CellAlignment::Center),
-                    upgrade_available,
-                ];
+            let nodegrop_data = vec![
+                Cell::new(account_id.clone()),
+                Cell::new(cluster_name.clone()),
+                Cell::new(region.clone()).set_alignment(CellAlignment::Center),
+                Cell::new(data.node_name),
+                Cell::new(data.ami_name).set_alignment(CellAlignment::Center),
+                Cell::new(data.latest_ami_name).set_alignment(CellAlignment::Center),
+                upgrade_available,
+            ];
 
-                rows.push(nodegrop_data);
-            }
+            rows.push(nodegrop_data);
         }
 
         // define output table
