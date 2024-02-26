@@ -1,6 +1,6 @@
 ---
 app:
-  name: Bleki App
+  name: Amanami
   version: 0.0.1
 aws:
   - account_id: < AWS Account ID>
