@@ -5,6 +5,7 @@ mod eks;
 mod ssm;
 
 use crate::config::AwsConfig;
+use crate::errors::ApplicationErrors;
 use crate::output::OutputTable;
 use config::Config;
 use eks::{Eks, EksCluster, EksNodeGroup};
@@ -68,7 +69,7 @@ impl Aws {
         Self { aws_account: aws }
     }
 
-    pub fn get_eks_clusters_update(&self) -> Result<(), std::io::Error> {
+    pub fn get_eks_clusters_update(&self) -> Result<(), ApplicationErrors> {
         // construct a vec of eks cluster
         let mut eks_clusters: Vec<EksCluster> = Vec::new();
         let (tx, rx) = channel();
