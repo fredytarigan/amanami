@@ -5,6 +5,7 @@ mod eks;
 mod ssm;
 
 use crate::config::AwsConfig;
+// use crate::errors::ApplicationErrors;
 use crate::output::OutputTable;
 use config::Config;
 use eks::{Eks, EksCluster, EksNodeGroup};
@@ -312,6 +313,10 @@ impl Aws {
                     .add_attribute(Attribute::Bold)
                     .fg(Color::DarkMagenta),
                 Cell::new(String::from("Latest AMI Version"))
+                    .set_alignment(CellAlignment::Center)
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::DarkMagenta),
+                Cell::new(String::from("Upgrade Available"))
                     .set_alignment(CellAlignment::Center)
                     .add_attribute(Attribute::Bold)
                     .fg(Color::DarkMagenta),
