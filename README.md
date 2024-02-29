@@ -6,7 +6,9 @@ Help day to day DevOps job to easily get available updates related to infrastruc
 
 ## How it works
 
-WIP
+This application will scrape configured target to check if there is any available updates.
+
+It will compare the current resources will it's upstream latest version, and show if update is availabe.
 
 ## Features
 
@@ -17,9 +19,11 @@ WIP
 
 ## Configuration
 
+### EKS
+
 For configuring the application, please refer to [CONFIG](config/config.yaml.example) file.
 
-### Single Cluster
+#### Single Cluster
 
 Single cluster configuration.
 
@@ -35,7 +39,7 @@ aws:
         region: us-east-1
 ```
 
-### Multiple Cluster
+#### Multiple Cluster
 
 Multiple cluster inside a single account configuration.
 
@@ -53,7 +57,7 @@ aws:
         region: us-west-1
 ```
 
-### Multiple Cluster - Multiple AWS Account
+#### Multiple Cluster - Multiple AWS Account
 
 Multiple cluster in multiple aws account configuration.
 
