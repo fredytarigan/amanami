@@ -12,7 +12,7 @@ pub enum AWSErrors {
 }
 
 impl Display for AWSErrors {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "{}", self.message())
     }
 }

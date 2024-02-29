@@ -5,7 +5,7 @@ mod eks;
 mod ssm;
 
 use crate::config::AwsConfig;
-use crate::errors::ApplicationErrors;
+// use crate::errors::ApplicationErrors;
 use crate::output::OutputTable;
 use config::Config;
 use eks::{Eks, EksCluster, EksNodeGroup};
@@ -69,7 +69,7 @@ impl Aws {
         Self { aws_account: aws }
     }
 
-    pub fn get_eks_clusters_update(&self) -> Result<(), ApplicationErrors> {
+    pub fn get_eks_clusters_update(&self) -> Result<(), std::io::Error> {
         // construct a vec of eks cluster
         let mut eks_clusters: Vec<EksCluster> = Vec::new();
         let (tx, rx) = channel();
@@ -313,6 +313,10 @@ impl Aws {
                     .add_attribute(Attribute::Bold)
                     .fg(Color::DarkMagenta),
                 Cell::new(String::from("Latest AMI Version"))
+                    .set_alignment(CellAlignment::Center)
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::DarkMagenta),
+                Cell::new(String::from("Upgrade Available"))
                     .set_alignment(CellAlignment::Center)
                     .add_attribute(Attribute::Bold)
                     .fg(Color::DarkMagenta),
