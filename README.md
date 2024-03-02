@@ -6,15 +6,86 @@ Help day to day DevOps job to easily get available updates related to infrastruc
 
 ## How it works
 
-WIP
+This application will scrape configured target to check if there is any available updates.
+
+It will compare the current resources will it's upstream latest version, and show if update is availabe.
 
 ## Features
 
-WIP
+### AWS EKS
+
+- EKS Cluster Update
+- Node Groups Update
 
 ## Configuration
 
-WIP
+### EKS
+
+For configuring the application, please refer to [CONFIG](config/config.yaml.example) file.
+
+#### Single Cluster
+
+Single cluster configuration.
+
+```
+---
+app:
+  name: Amanami
+  version: 0.0.1
+aws:
+  - account_id: 111111111111
+    eks:
+      - cluster_name: eks-cluster-a
+        region: us-east-1
+```
+
+#### Multiple Cluster
+
+Multiple cluster inside a single account configuration.
+
+```
+---
+app:
+  name: Amanami
+  version: 0.0.1
+aws:
+  - account_id: 111111111111
+    eks:
+      - cluster_name: eks-cluster-a
+        region: us-east-1
+      - cluster_name: eks-cluster-b
+        region: us-west-1
+```
+
+#### Multiple Cluster - Multiple AWS Account
+
+Multiple cluster in multiple aws account configuration.
+
+```
+---
+app:
+  name: Amanami
+  version: 0.0.1
+aws:
+  - account_id: 111111111111
+    eks:
+      - cluster_name: eks-cluster-a
+        region: us-east-1
+  - account_id: 222222222222
+    role_arn: arn:aws:iam::222222222222:role/amanami-role
+    eks:
+      - cluster_name: eks-cluster-b
+        region: us-east-1
+      - cluster_name: eks-cluster-c
+        region: us-west-1
+  - account_id: 333333333333
+    role_arn: arn:aws:iam::333333333333:role/amanami-role
+    eks:
+      - cluster_name: eks-cluster-d
+        region: us-east-2
+      - cluster_name: eks-cluster-e
+        region: eu-west-1
+```
 
 ## License
 
