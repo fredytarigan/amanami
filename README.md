@@ -10,12 +10,19 @@ This application will scrape configured target to check if there is any availabl
 
 It will compare the current resources will it's upstream latest version, and show if update is availabe.
 
+Amanami consist of some subcommands with it's own function.
+
+```Show global help
+amanami --help
+```
+
 ## Features
 
 ### AWS EKS
 
-- EKS Cluster Update
-- Node Groups Update
+- EKS Cluster Update List
+- Node Groups Update List
+- Addons Update List
 
 ## Configuration
 
