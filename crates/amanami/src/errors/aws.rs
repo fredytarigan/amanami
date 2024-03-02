@@ -1,23 +1,23 @@
-use std::error::Error;
+use aws_sdk_eks::error::SdkError;
 use std::fmt::Display;
 use std::fmt::{Formatter, Result};
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum AWSErrors {
+    #[error("")]
     ConstructionFailure,
+    #[error("")]
     TimeoutError,
+    #[error("")]
     DispatchError,
+    #[error("")]
     ResponseError,
+    #[error("")]
     ServiceError,
+    #[error("")]
+    ConnectorError,
 }
-
-impl Display for AWSErrors {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}", self.message())
-    }
-}
-
-impl Error for AWSErrors {}
 
 impl AWSErrors {
     fn message(&self) -> &str {
@@ -27,6 +27,7 @@ impl AWSErrors {
             Self::DispatchError => "",
             Self::ResponseError => "",
             Self::ServiceError => "",
+            Self::ConnectorError => "",
         }
     }
 }

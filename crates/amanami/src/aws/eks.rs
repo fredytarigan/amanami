@@ -128,16 +128,24 @@ impl<'sdk> Eks<'sdk> {
             .describe_cluster()
             .name(self.cluster_name.clone())
             .send()
-            .await
-            .unwrap();
+            .await;
 
-        let cluster_version: Vec<_> = resp
-            .cluster()
-            .into_iter()
-            .flat_map(|x| &x.version)
-            .collect();
+        match resp {
+            Ok(_) => {}
+            Err(e) => {
+                println!("{}", e);
+            }
+        }
 
-        String::from(cluster_version[0])
+        // let cluster_version: Vec<_> = resp
+        //     .cluster()
+        //     .into_iter()
+        //     .flat_map(|x| &x.version)
+        //     .collect();
+
+        // String::from(cluster_version[0])
+
+        unimplemented!()
     }
 
     #[::tokio::main]

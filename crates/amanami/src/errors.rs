@@ -2,7 +2,10 @@ mod aws;
 
 pub use aws::AWSErrors;
 
-#[derive(Debug)]
+use thiserror::Error;
+
+#[derive(Debug, Error)]
 pub enum ApplicationErrors {
+    #[error("Error: {0}")]
     AWSErrors(AWSErrors),
 }

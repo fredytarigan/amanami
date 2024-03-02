@@ -2,8 +2,8 @@ use std::process::ExitCode;
 
 use amanami::cli::run;
 
-fn main() -> anyhow::Result<ExitCode> {
+fn main() -> anyhow::Result<()> {
     let _ = run();
 
-    Ok(ExitCode::SUCCESS)
+    Ok(())
 }
