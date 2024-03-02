@@ -12,8 +12,34 @@ It will compare the current resources will it's upstream latest version, and sho
 
 Amanami consist of some subcommands with it's own function.
 
-```Show global help
-amanami --help
+**To show global help**
+
+```bash
+$ amanami --help
+
+Usage: amanami [OPTIONS] <COMMAND>
+
+Commands:
+  eks   AWS EKS update check
+  help  Print this message or the help of the given subcommand(s)
+
+Options:
+  -f, --config-file <CONFIG_FILE>  Config file
+                                   Application will look for "config/config.yaml" if this option isn't specified
+  -h, --help                       Print help
+```
+
+**To show specific subcommand help**
+
+```bash
+$ amanami eks --help
+
+AWS EKS update check
+
+Usage: amanami eks
+
+Options:
+  -h, --help  Print help
 ```
 
 ## Features
