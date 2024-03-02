@@ -4,7 +4,7 @@ use super::args::{Args, SubCommands};
 use crate::aws::Aws;
 use crate::config::loader;
 
-pub fn run() -> anyhow::Result<ExitCode> {
+pub fn run() -> anyhow::Result<()> {
     // parse cmd args
     let cmd = <Args as clap::Parser>::parse();
 
@@ -31,5 +31,5 @@ pub fn run() -> anyhow::Result<ExitCode> {
         }
     }
 
-    Ok(ExitCode::SUCCESS)
+    Ok(())
 }
