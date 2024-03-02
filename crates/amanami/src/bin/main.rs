@@ -1,5 +1,3 @@
-use std::process::ExitCode;
-
 use amanami::cli::run;
 
 fn main() -> anyhow::Result<()> {

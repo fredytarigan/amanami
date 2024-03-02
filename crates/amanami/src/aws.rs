@@ -330,4 +330,157 @@ impl Aws {
 
         Ok(())
     }
+
+    pub fn get_eks_addons_update(&self) -> Result<(), std::io::Error> {
+        // construct a vec of eks cluster
+        let mut eks_clusters: Vec<EksCluster> = Vec::new();
+        let (tx, rx) = channel();
+
+        for account in self.aws_account.clone() {
+            if let Some(eks) = account.eks {
+                for item in eks {
+                    let cluster = EksCluster {
+                        account_id: account.account_id.clone(),
+                        cluster_name: item.cluster_name,
+                        region: item.region,
+                        role_arn: account.role_arn.clone(),
+                    };
+
+                    eks_clusters.push(cluster);
+                }
+            }
+        }
+
+        thread::scope(|scope| {
+            // loop over all aws account
+            for cluster in eks_clusters {
+                let tx = tx.clone();
+
+                scope.spawn(move || {
+                    let config = Config {
+                        role_arn: cluster.role_arn,
+                        region: cluster.region.clone(),
+                    };
+
+                    let config = config.generate_config();
+
+                    // generate eks client
+                    let eks = Eks::new(
+                        &config,
+                        cluster.cluster_name.clone(),
+                        cluster.region.clone(),
+                    );
+
+                    let client = eks.client();
+
+                    let cluster_version = eks.get_cluster_version(&client);
+                    let addons = eks.list_addons(&client);
+
+                    for addon in addons {
+                        let current_version = eks.get_addons_version(
+                            &client,
+                            addon.clone(),
+                            cluster.cluster_name.clone(),
+                        );
+
+                        let latest_version = eks.get_addons_latest_version(
+                            &client,
+                            addon.clone(),
+                            cluster_version.clone(),
+                        );
+
+                        let _ = tx.send((
+                            cluster.account_id.clone(),
+                            cluster.cluster_name.clone(),
+                            cluster.region.clone(),
+                            addon,
+                            current_version,
+                            latest_version,
+                        ));
+                    }
+                });
+            }
+        });
+
+        drop(tx);
+
+        // let's prepare the output table
+        let mut rows = vec![];
+
+        while let Ok((
+            account_id,
+            cluster_name,
+            region,
+            addon_name,
+            current_version,
+            latest_version,
+        )) = rx.recv()
+        {
+            let upgrade_available: Cell = if current_version == latest_version {
+                Cell::new("Not Available")
+                    .set_alignment(CellAlignment::Center)
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Black)
+            } else {
+                Cell::new("Available")
+                    .set_alignment(CellAlignment::Center)
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Black)
+                    .fg(Color::Green)
+            };
+
+            let addon_data = vec![
+                Cell::new(account_id),
+                Cell::new(cluster_name),
+                Cell::new(region).set_alignment(CellAlignment::Center),
+                Cell::new(addon_name),
+                Cell::new(current_version),
+                Cell::new(latest_version),
+                upgrade_available,
+            ];
+
+            rows.push(addon_data);
+        }
+
+        // define output table
+        let table = OutputTable::new(
+            vec![
+                Cell::new(String::from("AWS Account ID"))
+                    .set_alignment(CellAlignment::Center)
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::DarkMagenta),
+                Cell::new(String::from("EKS Cluster Name"))
+                    .set_alignment(CellAlignment::Center)
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::DarkMagenta),
+                Cell::new(String::from("Region"))
+                    .set_alignment(CellAlignment::Center)
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::DarkMagenta),
+                Cell::new(String::from("Addon Name"))
+                    .set_alignment(CellAlignment::Center)
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::DarkMagenta),
+                Cell::new(String::from("Installed Version"))
+                    .set_alignment(CellAlignment::Center)
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::DarkMagenta),
+                Cell::new(String::from("Latest Version"))
+                    .set_alignment(CellAlignment::Center)
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::DarkMagenta),
+                Cell::new(String::from("Upgrade Available"))
+                    .set_alignment(CellAlignment::Center)
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::DarkMagenta),
+            ],
+            rows,
+        );
+
+        println!("{}", "Addons Details: ".bold().yellow());
+        table.display_output();
+        println!();
+
+        Ok(())
+    }
 }

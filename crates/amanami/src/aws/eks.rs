@@ -123,29 +123,21 @@ impl<'sdk> Eks<'sdk> {
     }
 
     #[::tokio::main]
-    async fn get_cluster_version(&self, client: &Client) -> String {
+    pub async fn get_cluster_version(&self, client: &Client) -> String {
         let resp = client
             .describe_cluster()
             .name(self.cluster_name.clone())
             .send()
-            .await;
+            .await
+            .unwrap();
 
-        match resp {
-            Ok(_) => {}
-            Err(e) => {
-                println!("{}", e);
-            }
-        }
+        let cluster_version: Vec<_> = resp
+            .cluster()
+            .into_iter()
+            .flat_map(|x| &x.version)
+            .collect();
 
-        // let cluster_version: Vec<_> = resp
-        //     .cluster()
-        //     .into_iter()
-        //     .flat_map(|x| &x.version)
-        //     .collect();
-
-        // String::from(cluster_version[0])
-
-        unimplemented!()
+        String::from(cluster_version[0])
     }
 
     #[::tokio::main]
@@ -227,5 +219,83 @@ impl<'sdk> Eks<'sdk> {
             .collect();
 
         String::from(autoscaling_group[0])
+    }
+
+    #[::tokio::main]
+    pub async fn list_addons(&self, client: &Client) -> Vec<String> {
+        let resp = client
+            .list_addons()
+            .cluster_name(self.cluster_name.clone())
+            .send()
+            .await
+            .unwrap();
+
+        let mut addons = Vec::new();
+
+        for item in resp.addons() {
+            addons.push(item.to_owned());
+        }
+
+        addons
+    }
+
+    #[::tokio::main]
+    pub async fn get_addons_version(
+        &self,
+        client: &Client,
+        addons_name: String,
+        cluster_name: String,
+    ) -> String {
+        let resp = client
+            .describe_addon()
+            .addon_name(addons_name)
+            .cluster_name(cluster_name)
+            .send()
+            .await
+            .unwrap();
+
+        let addon_version: Vec<_> = resp
+            .addon()
+            .into_iter()
+            .flat_map(|x| &x.addon_version)
+            .collect();
+
+        String::from(addon_version[0])
+    }
+
+    #[::tokio::main]
+    pub async fn get_addons_latest_version(
+        &self,
+        client: &Client,
+        addons_name: String,
+        kubernetes_version: String,
+    ) -> String {
+        let resp = client
+            .describe_addon_versions()
+            .addon_name(addons_name)
+            .kubernetes_version(kubernetes_version)
+            .send()
+            .await
+            .unwrap();
+
+        let mut latest_addons_version = Vec::new();
+
+        let versions = resp
+            .addons()
+            .iter()
+            .flat_map(|x| &x.addon_versions)
+            .flatten()
+            .flat_map(|x| &x.addon_version)
+            .collect::<Vec<_>>();
+
+        for item in versions {
+            latest_addons_version.push(item);
+        }
+
+        latest_addons_version.sort();
+        latest_addons_version.dedup();
+        latest_addons_version.reverse();
+
+        String::from(latest_addons_version[0])
     }
 }
