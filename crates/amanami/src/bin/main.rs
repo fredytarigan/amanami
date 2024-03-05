@@ -1,7 +1,10 @@
-use amanami::cli::run;
+use amanami::{cli::run, errors::ApplicationErrors};
 
-fn main() -> anyhow::Result<()> {
-    let _ = run();
+fn main() -> Result<(), ApplicationErrors> {
+    if let Err(e) = run() {
+        println!("{:?}", e.to_string());
+        std::process::exit(1)
+    }
 
     Ok(())
 }

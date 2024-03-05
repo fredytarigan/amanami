@@ -1,6 +1,6 @@
 mod eks;
 
-use eks::AwsEksErrors;
+pub use eks::AwsEksErrors;
 
 use thiserror::Error;
 

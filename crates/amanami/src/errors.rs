@@ -1,5 +1,6 @@
 mod aws;
 
+pub use aws::AwsEksErrors;
 pub use aws::AwsErrors;
 
 use thiserror::Error;
@@ -10,5 +11,5 @@ pub enum ApplicationErrors {
     ConfigNotFound(String),
 
     #[error("Error: {0}")]
-    AwsErrors(AwsErrors),
+    AwsErrors(#[source] AwsErrors),
 }
