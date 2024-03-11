@@ -85,29 +85,8 @@ impl<'sdk> Eks<'sdk> {
         Ok(String::from(cluster_version[0]))
     }
 
-    pub fn get_cluster_update(
-        &self,
-        client: &Client,
-    ) -> Result<ClusterResponse, ApplicationErrors> {
-        // get cluster update availability
-        let cluster_version = self.get_cluster_version(client)?;
-        let latest_cluster_version = self.get_latest_cluster_version(client)?;
-
-        let mut upgrade_available: String = String::from("Not Available");
-
-        if cluster_version != latest_cluster_version {
-            upgrade_available = String::from("Available");
-        }
-
-        Ok(ClusterResponse {
-            cluster_version: cluster_version.clone(),
-            latest_cluster_version,
-            upgrade_available,
-        })
-    }
-
     #[::tokio::main]
-    async fn get_latest_cluster_version(
+    pub async fn get_latest_cluster_version(
         &self,
         client: &Client,
     ) -> Result<String, ApplicationErrors> {

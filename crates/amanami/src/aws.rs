@@ -89,61 +89,85 @@ impl Aws {
             }
         }
 
-        // loop over all aws account
-        for cluster in eks_clusters {
-            let tx = tx.clone();
-            thread::spawn(move || -> Result<(), ApplicationErrors> {
-                let config = Config {
-                    role_arn: cluster.role_arn,
-                    region: cluster.region.clone(),
-                };
+        thread::scope(|scope| {
+            // loop over all aws account
+            for cluster in eks_clusters {
+                let tx = tx.clone();
+                scope.spawn(move || -> Result<(), ApplicationErrors> {
+                    let config = Config {
+                        role_arn: cluster.role_arn,
+                        region: cluster.region.clone(),
+                    };
 
-                let config = config.generate_config();
+                    let config = config.generate_config();
 
-                // generate eks client
-                let eks = Eks::new(
-                    &config,
-                    cluster.cluster_name.clone(),
-                    cluster.region.clone(),
-                );
+                    // generate eks client
+                    let eks = Eks::new(
+                        &config,
+                        cluster.cluster_name.clone(),
+                        cluster.region.clone(),
+                    );
 
-                let client = eks.client();
+                    let client = eks.client();
 
-                let result_clusters = eks.get_cluster_update(&client);
+                    let cluster_version = match eks.get_cluster_version(&client) {
+                        Ok(d) => d,
+                        Err(e) => {
+                            eprintln!("{} {}", "Error occured while getting cluster version on EKS cluster".bold().red(), cluster.cluster_name.bold().red());
+                            eprintln!();
+                            return Err(e);
+                        }
+                    };
 
-                let result = match result_clusters {
-                    Ok(d) => d,
-                    Err(e) => {
-                        println!("{} {}", "Error occured while getting cluster update status on EKS cluster {}".bold().red(), cluster.cluster_name);
-                        println!();
-                        return Err(e);
+                    let latest_cluster_version = match eks.get_latest_cluster_version(&client) {
+                        Ok(d) => d,
+                        Err(e) => {
+                            eprintln!("{} {}", "Error occured while getting latest cluster version on EKS cluster".bold().red(), cluster.cluster_name.bold().red());
+                            eprintln!();
+                            return Err(e);
+                        }
+                    };
+
+                    let mut upgrade_available = String::from("Not Available");
+
+                    if cluster_version != latest_cluster_version {
+                        upgrade_available = String::from("Available");
                     }
-                };
 
-                let _ = tx.send((
-                    cluster.account_id,
-                    cluster.region,
-                    cluster.cluster_name.clone(),
-                    result,
-                ));
+                    let _ = tx.send((
+                        cluster.account_id,
+                        cluster.region,
+                        cluster.cluster_name.clone(),
+                        cluster_version,
+                        latest_cluster_version,
+                        upgrade_available,
+                    ));
 
-                Ok(())
-            });
-        }
+                    Ok(())
+                });
+            }
+        });
 
         drop(tx);
 
         // let's prepare the output table
         let mut rows = vec![];
 
-        while let Ok((account_id, region, cluster_name, result)) = rx.recv() {
-            let upgrade_available: Cell = if result.upgrade_available == "Not Available" {
-                Cell::new(&result.upgrade_available)
+        while let Ok((
+                account_id, 
+                region, 
+                cluster_name, 
+                cluster_version,
+                latest_cluster_version,
+                upgrade_available
+            )) = rx.recv() {
+            let upgrade_available: Cell = if upgrade_available == "Not Available" {
+                Cell::new(&upgrade_available)
                     .set_alignment(CellAlignment::Center)
                     .add_attribute(Attribute::Bold)
                     .fg(Color::Black)
             } else {
-                Cell::new(&result.upgrade_available)
+                Cell::new(&upgrade_available)
                     .set_alignment(CellAlignment::Center)
                     .add_attribute(Attribute::Bold)
                     .fg(Color::Black)
@@ -154,8 +178,8 @@ impl Aws {
                 Cell::new(account_id),
                 Cell::new(cluster_name),
                 Cell::new(region).set_alignment(CellAlignment::Center),
-                Cell::new(result.cluster_version).set_alignment(CellAlignment::Center),
-                Cell::new(result.latest_cluster_version).set_alignment(CellAlignment::Center),
+                Cell::new(cluster_version).set_alignment(CellAlignment::Center),
+                Cell::new(latest_cluster_version).set_alignment(CellAlignment::Center),
                 upgrade_available,
             ];
 
