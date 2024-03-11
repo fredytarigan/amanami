@@ -4,9 +4,9 @@ mod ec2;
 mod eks;
 mod ssm;
 
-use crate::config::AwsConfig;
 use crate::errors::ApplicationErrors;
 use crate::output::OutputTable;
+use crate::config::AwsConfig;
 use config::Config;
 use eks::{Eks, EksCluster, EksNodeGroup};
 use std::sync::mpsc::channel;
@@ -92,7 +92,7 @@ impl Aws {
         // loop over all aws account
         for cluster in eks_clusters {
             let tx = tx.clone();
-            thread::spawn(move || {
+            thread::spawn(move || -> Result<(), ApplicationErrors> {
                 let config = Config {
                     role_arn: cluster.role_arn,
                     region: cluster.region.clone(),
@@ -109,7 +109,16 @@ impl Aws {
 
                 let client = eks.client();
 
-                let result = eks.get_cluster_update(&client);
+                let result_clusters = eks.get_cluster_update(&client);
+
+                let result = match result_clusters {
+                    Ok(d) => d,
+                    Err(e) => {
+                        println!("{} {}", "Error occured while getting cluster update status on EKS cluster {}".bold().red(), cluster.cluster_name);
+                        println!();
+                        return Err(e);
+                    }
+                };
 
                 let _ = tx.send((
                     cluster.account_id,
@@ -117,6 +126,8 @@ impl Aws {
                     cluster.cluster_name.clone(),
                     result,
                 ));
+
+                Ok(())
             });
         }
 
@@ -151,45 +162,48 @@ impl Aws {
             rows.push(cluster_data);
         }
 
-        // define output table
-        let table = OutputTable::new(
-            vec![
-                Cell::new(String::from("AWS Account ID"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("EKS Cluster Name"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("Region"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("EKS Cluster Version"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("Latest Version Available"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("Upgrade Available"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-            ],
-            rows,
-        );
+        if ! rows.is_empty() {
 
-        println!("{}", "EKS Cluster Details: ".bold().yellow());
-        table.display_output();
-        println!();
+            // define output table
+            let table = OutputTable::new(
+                vec![
+                    Cell::new(String::from("AWS Account ID"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("EKS Cluster Name"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("Region"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("EKS Cluster Version"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("Latest Version Available"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("Upgrade Available"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                ],
+                rows,
+            );
+
+            println!("{}", "EKS Cluster Details: ".bold().yellow());
+            table.display_output();
+            println!();
+        }
 
         Ok(())
     }
 
-    pub fn get_eks_nodegroups_update(&self) -> Result<(), std::io::Error> {
+    pub fn get_eks_nodegroups_update(&self) -> Result<(),ApplicationErrors> {
         // consutruct a vec of eks cluster
         let mut eks_clusters: Vec<EksNodeGroup> = Vec::new();
         let (tx, rx) = channel();
@@ -209,7 +223,20 @@ impl Aws {
 
                     let client = eks.client();
 
-                    let nodegroup = eks.list_nodegroups(&client);
+                    let result_nodegroup = eks.list_nodegroups(&client);
+
+                    let nodegroup = match result_nodegroup {
+                        Ok(d) => d,
+                        Err(e) => {
+                            println!(
+                                "{} {}", 
+                                "Error occured while getting nodegroup list on EKS cluster".bold().red(), 
+                                item.cluster_name
+                            );
+                            println!();
+                            return Err(e);
+                        }
+                    };
 
                     let result: Vec<_> = nodegroup.iter().flatten().collect();
 
@@ -229,7 +256,7 @@ impl Aws {
         // loop over all aws account
         for cluster in eks_clusters {
             let tx = tx.clone();
-            thread::spawn(move || {
+            thread::spawn(move || -> Result<(), ApplicationErrors> {
                 let config = Config {
                     role_arn: cluster.role_arn,
                     region: cluster.region.clone(),
@@ -246,7 +273,22 @@ impl Aws {
 
                 let client = eks.client();
 
-                let result = eks.get_nodegroup_update(&client, cluster.node_name);
+                let result_nodegroup = eks.get_nodegroup_update(&client, cluster.node_name.clone());
+
+                let result = match result_nodegroup {
+                    Ok(d) => d,
+                    Err(e) => {
+                        println!(
+                            "{} {} {} {}", 
+                            "Error occured while getting node group update version on EKS cluster ".bold().red(),
+                            cluster.cluster_name.bold().red(),
+                            "with nodegroup name ".bold().red(),
+                            cluster.node_name.clone().bold().red()
+                        );
+                        println!();
+                        return Err(e);
+                    }
+                };
 
                 let _ = tx.send((
                     cluster.account_id,
@@ -254,6 +296,8 @@ impl Aws {
                     cluster.cluster_name.clone(),
                     result,
                 ));
+
+                Ok(())
             });
         }
 
@@ -289,49 +333,52 @@ impl Aws {
             rows.push(nodegrop_data);
         }
 
-        // define output table
-        let table = OutputTable::new(
-            vec![
-                Cell::new(String::from("AWS Account ID"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("EKS Cluster Name"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("Region"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("Nodegroup Name"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("AMI Version"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("Latest AMI Version"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("Upgrade Available"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-            ],
-            rows,
-        );
+        if ! rows.is_empty() {
 
-        println!("{}", "Nodegroup Details: ".bold().yellow());
-        table.display_output();
-        println!();
+            // define output table
+            let table = OutputTable::new(
+                vec![
+                    Cell::new(String::from("AWS Account ID"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("EKS Cluster Name"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("Region"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("Nodegroup Name"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("AMI Version"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("Latest AMI Version"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("Upgrade Available"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                ],
+                rows,
+            );
+
+            println!("{}", "Nodegroup Details: ".bold().yellow());
+            table.display_output();
+            println!();
+        }
 
         Ok(())
     }
 
-    pub fn get_eks_addons_update(&self) -> Result<(), std::io::Error> {
+    pub fn get_eks_addons_update(&self) -> Result<(), ApplicationErrors> {
         // construct a vec of eks cluster
         let mut eks_clusters: Vec<EksCluster> = Vec::new();
         let (tx, rx) = channel();
@@ -356,7 +403,7 @@ impl Aws {
             for cluster in eks_clusters {
                 let tx = tx.clone();
 
-                scope.spawn(move || {
+                scope.spawn(move || -> Result<(), ApplicationErrors> {
                     let config = Config {
                         role_arn: cluster.role_arn,
                         region: cluster.region.clone(),
@@ -373,21 +420,84 @@ impl Aws {
 
                     let client = eks.client();
 
-                    let cluster_version = eks.get_cluster_version(&client);
-                    let addons = eks.list_addons(&client);
+                    let result_cluster_version = eks.get_cluster_version(&client);
+
+                    let cluster_version = match result_cluster_version {
+                        Ok(d) => d,
+                        Err(e) => {
+                            println!(
+                                "{} {}",
+                                "Error occured while getting EKS cluster version for"
+                                    .bold()
+                                    .red(),
+                                cluster.cluster_name.bold().red()
+                            );
+                            println!();
+                            return Err(e);
+                        }
+                    };
+
+                    let result_addons = eks.list_addons(&client);
+
+                    let addons = match result_addons {
+                        Ok(d) => d,
+                        Err(e) => {
+                            println!(
+                                "{} {}",
+                                "Error occured while list addons on EKS cluster"
+                                    .bold()
+                                    .red(),
+                                cluster.cluster_name.bold().red()
+                            );
+                            println!();
+                            return Err(e);
+                        }
+                    };
 
                     for addon in addons {
-                        let current_version = eks.get_addons_version(
+                        let result_current_version = eks.get_addons_version(
                             &client,
                             addon.clone(),
                             cluster.cluster_name.clone(),
                         );
 
-                        let latest_version = eks.get_addons_latest_version(
+                        let current_version = match result_current_version {
+                            Ok(d) => d,
+                            Err(e) => {
+                                println!(
+                                    "{} {} {} {}",
+                                    "Error occured while getting addons version on EKS cluster"
+                                        .red()
+                                        .bold(),
+                                    cluster.cluster_name.bold().red(),
+                                    "and addon name".bold().red(),
+                                    addon.bold().red()
+                                );
+                                println!();
+                                return Err(e);
+                            }
+                        };
+
+                        let result_latest_version = eks.get_addons_latest_version(
                             &client,
                             addon.clone(),
                             cluster_version.clone(),
                         );
+
+                        let latest_version = match result_latest_version {
+                            Ok(d) => d,
+                            Err(e) => {
+                                println!(
+                                    "{} {} {} {}", 
+                                    "Error occured while getting addons latest version on EKS cluster".bold().red(), 
+                                    cluster.cluster_name.bold().red(), 
+                                    "and addon name".bold().red(), 
+                                    addon.bold().red()
+                                );
+                                println!();
+                                return Err(e);
+                            }
+                        };
 
                         let _ = tx.send((
                             cluster.account_id.clone(),
@@ -398,6 +508,8 @@ impl Aws {
                             latest_version,
                         ));
                     }
+
+                    Ok(())
                 });
             }
         });
@@ -442,44 +554,46 @@ impl Aws {
             rows.push(addon_data);
         }
 
-        // define output table
-        let table = OutputTable::new(
-            vec![
-                Cell::new(String::from("AWS Account ID"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("EKS Cluster Name"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("Region"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("Addon Name"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("Installed Version"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("Latest Version"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-                Cell::new(String::from("Upgrade Available"))
-                    .set_alignment(CellAlignment::Center)
-                    .add_attribute(Attribute::Bold)
-                    .fg(Color::DarkMagenta),
-            ],
-            rows,
-        );
+        if ! rows.is_empty() {
+            // define output table
+            let table = OutputTable::new(
+                vec![
+                    Cell::new(String::from("AWS Account ID"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("EKS Cluster Name"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("Region"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("Addon Name"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("Installed Version"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("Latest Version"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                    Cell::new(String::from("Upgrade Available"))
+                        .set_alignment(CellAlignment::Center)
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::DarkMagenta),
+                ],
+                rows,
+            );
 
-        println!("{}", "Addons Details: ".bold().yellow());
-        table.display_output();
-        println!();
+            println!("{}", "Addons Details: ".bold().yellow());
+            table.display_output();
+            println!();
+        }
 
         Ok(())
     }

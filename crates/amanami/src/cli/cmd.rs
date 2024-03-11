@@ -1,8 +1,9 @@
 use super::args::{Args, SubCommands};
 use crate::aws::Aws;
 use crate::config::loader;
+use crate::errors::ApplicationErrors;
 
-pub fn run() -> anyhow::Result<()> {
+pub fn run() -> Result<(), ApplicationErrors> {
     // parse cmd args
     let cmd = <Args as clap::Parser>::parse();
 
@@ -27,8 +28,8 @@ pub fn run() -> anyhow::Result<()> {
             aws.get_eks_clusters_update()?;
             aws.get_eks_nodegroups_update()?;
             aws.get_eks_addons_update()?;
+
+            Ok(())
         }
     }
-
-    Ok(())
 }

@@ -1,30 +1,26 @@
+mod eks;
+
+pub use eks::AwsEksErrors;
+
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum AWSErrors {
-    #[error("")]
-    ConstructionFailure,
-    #[error("")]
-    TimeoutError,
-    #[error("")]
-    DispatchError,
-    #[error("")]
-    ResponseError,
-    #[error("")]
-    ServiceError,
-    #[error("")]
-    ConnectorError,
-}
+pub enum AwsErrors {
+    #[error("{0}")]
+    ConstructionFailure(String),
 
-// impl AWSErrors {
-//     fn message(&self) -> &str {
-//         match self {
-//             Self::ConstructionFailure => "",
-//             Self::TimeoutError => "",
-//             Self::DispatchError => "",
-//             Self::ResponseError => "",
-//             Self::ServiceError => "",
-//             Self::ConnectorError => "",
-//         }
-//     }
-// }
+    #[error("{0}")]
+    TimeoutError(String),
+
+    #[error("{0}")]
+    DispatchError(String),
+
+    #[error("{0}")]
+    ResponseError(String),
+
+    #[error("{0}")]
+    AwsEksErrors(#[source] AwsEksErrors),
+
+    #[error("{0}")]
+    UnknownErrors(String),
+}
