@@ -3,12 +3,14 @@ mod config;
 mod ec2;
 mod eks;
 mod ssm;
+mod iam;
 
 use crate::errors::ApplicationErrors;
 use crate::output::OutputTable;
 use crate::config::AwsConfig;
 use config::Config;
 use eks::{Eks, EksCluster, EksNodeGroup};
+use iam::{Iam, IamAccount};
 use std::sync::mpsc::channel;
 use std::thread;
 
@@ -26,11 +28,17 @@ pub struct AwsAccount {
     account_id: String,
     role_arn: Option<String>,
     eks: Option<Vec<EksConfig>>,
+    iam: Option<Vec<IamConfig>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct EksConfig {
     cluster_name: String,
+    region: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct IamConfig {
     region: String,
 }
 
@@ -40,6 +48,7 @@ impl Aws {
 
         for account in config {
             let mut eks: Vec<EksConfig> = Vec::new();
+            let mut iam: Vec<IamConfig> = Vec::new();
 
             if let Some(d) = account.eks {
                 for item in d {
@@ -52,15 +61,31 @@ impl Aws {
                 }
             }
 
+            if let Some(d) = account.iam {
+                for item in d {
+                    let iam_config = IamConfig {
+                        region: item.region,
+                    };
+
+                    iam.push(iam_config);
+                }
+            }
+
             let eks_data = match eks.len() {
                 0 => None,
                 _ => Some(eks),
+            };
+
+            let iam_data = match iam.len() {
+                0 => None,
+                _ => Some(iam),
             };
 
             let aws_account = AwsAccount {
                 account_id: account.account_id,
                 role_arn: account.role_arn,
                 eks: eks_data,
+                iam: iam_data,
             };
 
             aws.push(aws_account);
@@ -618,6 +643,60 @@ impl Aws {
             table.display_output();
             println!();
         }
+
+        Ok(())
+    }
+
+    pub fn get_iam_user_details(&self) -> Result<(), ApplicationErrors> {
+        // construct a vec of iam account
+        let mut iam_accounts: Vec<IamAccount> = Vec::new();
+        let (tx, rx) = channel();
+        
+        for account in self.aws_account.clone() {
+            if let Some(iam) = account.iam {
+                for item in iam {
+                    let iam_account = IamAccount {
+                        account_id: account.account_id.clone(),
+                        region: item.region,
+                        role_arn: account.role_arn.clone(),
+                    };
+
+                    iam_accounts.push(iam_account);
+                }
+            }
+        }
+
+        thread::scope(|scope| {
+            for item in iam_accounts {
+                let tx = tx.clone();
+
+                scope.spawn(move || -> Result<(), ApplicationErrors> {
+                    let config = Config {
+                        role_arn: item.role_arn,
+                        region: item.region.clone(),
+                    };
+
+                    let config = config.generate_config();
+
+                    // generate iam client
+                    let iam = Iam::new(
+                        &config,
+                        item.region,
+                    );
+
+                    let client = iam.client();
+
+                    let users: Result<Vec<String>, ApplicationErrors> = iam.list_users(client);
+
+                    let _ = tx.send(users);
+
+
+                    Ok(())
+                });
+            }
+        });
+
+        drop(tx);
 
         Ok(())
     }

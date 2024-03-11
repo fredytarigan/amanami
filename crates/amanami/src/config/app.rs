@@ -18,11 +18,17 @@ pub struct AwsConfig {
     pub account_id: String,
     pub role_arn: Option<String>,
     pub eks: Option<Vec<EksConfig>>,
+    pub iam: Option<Vec<IamConfig>>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct EksConfig {
     pub cluster_name: String,
+    pub region: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct IamConfig {
     pub region: String,
 }
 

@@ -22,4 +22,6 @@ pub enum SubCommands {
     /// AWS EKS update check
     #[clap(verbatim_doc_comment)]
     Eks,
+    /// AWS IAM User access key check
+    Iam,
 }
