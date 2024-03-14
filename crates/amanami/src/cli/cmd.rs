@@ -31,5 +31,13 @@ pub fn run() -> Result<(), ApplicationErrors> {
 
             Ok(())
         }
+
+        SubCommands::Iam {} => {
+            let aws = Aws::new(config.aws);
+
+            aws.get_iam_user_details()?;
+
+            Ok(())
+        }
     }
 }
