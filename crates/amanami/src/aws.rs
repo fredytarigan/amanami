@@ -245,6 +245,7 @@ impl Aws {
                 rows,
             );
 
+            println!();
             println!("{}", "EKS Cluster Details: ".bold().yellow());
             table.display_output();
             println!();
@@ -420,6 +421,7 @@ impl Aws {
                 rows,
             );
 
+            println!();
             println!("{}", "Nodegroup Details: ".bold().yellow());
             table.display_output();
             println!();
@@ -640,6 +642,7 @@ impl Aws {
                 rows,
             );
 
+            println!();
             println!("{}", "Addons Details: ".bold().yellow());
             table.display_output();
             println!();
@@ -866,6 +869,7 @@ impl Aws {
                 rows,
             );
 
+            println!();
             println!("{}", "IAM User Access Keys Details: ".bold().yellow());
             table.display_output();
             println!();
