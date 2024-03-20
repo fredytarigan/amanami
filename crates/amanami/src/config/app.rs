@@ -5,6 +5,7 @@ use serde::Deserialize;
 pub struct AppConfig {
     pub app: App,
     pub aws: Vec<AwsConfig>,
+    pub grafana: Vec<GrafanaConfig>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -30,6 +31,12 @@ pub struct EksConfig {
 #[derive(Debug, Deserialize)]
 pub struct IamConfig {
     pub region: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GrafanaConfig {
+    pub name: String,
+    pub url: String,
 }
 
 impl AppConfig {

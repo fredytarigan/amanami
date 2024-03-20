@@ -2,6 +2,7 @@ use super::args::{Args, SubCommands};
 use crate::aws::Aws;
 use crate::config::loader;
 use crate::errors::ApplicationErrors;
+use crate::grafana::Grafana;
 
 pub fn run() -> Result<(), ApplicationErrors> {
     // parse cmd args
@@ -36,6 +37,14 @@ pub fn run() -> Result<(), ApplicationErrors> {
             let aws = Aws::new(config.aws);
 
             aws.get_iam_user_details()?;
+
+            Ok(())
+        }
+
+        SubCommands::Grafana {} => {
+            let grafana = Grafana::new(config.grafana);
+
+            grafana.get_grafana_update();
 
             Ok(())
         }

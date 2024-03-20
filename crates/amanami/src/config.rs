@@ -1,6 +1,6 @@
 mod app;
 
-pub use app::{AppConfig, AwsConfig};
+pub use app::{AppConfig, AwsConfig, GrafanaConfig};
 use colored::*;
 
 pub fn loader(path: &str) -> AppConfig {

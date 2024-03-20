@@ -24,4 +24,6 @@ pub enum SubCommands {
     Eks,
     /// AWS IAM User access key check
     Iam,
+    /// Grafana version check
+    Grafana,
 }
